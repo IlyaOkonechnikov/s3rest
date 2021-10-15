@@ -1,1 +1,24 @@
-
+spring:
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 15MB
+cloud:
+  aws:
+    s3:
+      url: https://jaxelbucket.s3.eu-central-1.amazonaws.com
+      bucket-name: jaxelbucket
+    region:
+      auto: false
+      static: eu-central-1
+    stack:
+      auto: false
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+logging:
+  level:
+    com:
+      amazonaws:
+        util:
+          EC2MetadataUtils: error
