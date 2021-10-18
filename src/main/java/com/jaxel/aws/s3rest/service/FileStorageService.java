@@ -1,19 +1,18 @@
 package com.jaxel.aws.s3rest.service;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
+import com.jaxel.aws.s3rest.exception.FileAlreadyExistsException;
 import com.jaxel.aws.s3rest.exception.FileUploadException;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.file.Files;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,49 +20,42 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings("ConstantConditions")
 public class FileStorageService {
 
   @Value("${cloud.aws.s3.url}")
   private String url;
 
-  @Value("${cloud.aws.s3.bucket-name}")
-  private String bucketName;
+  @Value("${cloud.aws.s3.bucket}")
+  private String bucket;
 
   private final AmazonS3 amazonS3;
 
-  public String uploadFile(MultipartFile multipartFile) {
-    if (multipartFile.getOriginalFilename() == null) {
+  public InputStreamResource downloadFile(String filename) {
+    S3Object s3object = amazonS3.getObject(new GetObjectRequest(bucket, filename));
+    return new InputStreamResource(s3object.getObjectContent());
+  }
+
+  public String uploadFile(MultipartFile file) {
+    String filename = file.getOriginalFilename();
+    if (filename == null) {
       throw new IllegalArgumentException("Original filename mustn't be null");
     }
-    return uploadMultipartFile(multipartFile);
+    if (amazonS3.doesObjectExist(bucket, filename)) {
+      throw new FileAlreadyExistsException(filename, bucket);
+    }
+      try {
+      ObjectMetadata metadata = new ObjectMetadata();
+      metadata.setContentLength(file.getSize());
+      amazonS3.putObject(bucket, filename, file.getInputStream(), metadata);
+      return String.format("%s/%s", url, filename);
+    } catch (Exception e) {
+      log.error("An error occurred while uploading the file.", e);
+      throw new FileUploadException(e);
+    }
   }
 
   public void deleteFile(String url) {
     String fileName = url.substring(url.lastIndexOf("/") + 1);
-    amazonS3.deleteObject(new DeleteObjectRequest(bucketName, fileName));
-  }
-
-  private String uploadMultipartFile(MultipartFile multipartFile) {
-    String fileUrl;
-    try {
-      File file = convertMultipartToFile(multipartFile);
-      String fileName = multipartFile.getOriginalFilename();
-      amazonS3.putObject(new PutObjectRequest(bucketName, fileName, file)
-          .withCannedAcl(CannedAccessControlList.PublicRead));
-      Files.delete(file.toPath());
-      fileUrl = url.concat(fileName);
-    } catch (IOException e) {
-      throw new FileUploadException(e);
-    }
-    return fileUrl;
-  }
-
-  private File convertMultipartToFile(MultipartFile multipartFile) throws IOException {
-    File file = new File(multipartFile.getOriginalFilename());
-    try (FileOutputStream stream = new FileOutputStream(file)) {
-      stream.write(multipartFile.getBytes());
-    }
-    return file;
+    amazonS3.deleteObject(new DeleteObjectRequest(bucket, fileName));
   }
 }

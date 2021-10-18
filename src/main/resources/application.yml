@@ -7,7 +7,7 @@ cloud:
   aws:
     s3:
       url: https://jaxelbucket.s3.eu-central-1.amazonaws.com
-      bucket-name: jaxelbucket
+      bucket: jaxelbucket
     region:
       auto: false
       static: eu-central-1
