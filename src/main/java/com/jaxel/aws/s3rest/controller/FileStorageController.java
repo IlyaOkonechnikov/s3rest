@@ -1,8 +1,7 @@
 package com.jaxel.aws.s3rest.controller;
 
-import com.jaxel.aws.s3rest.service.FileStorageService;
+import com.jaxel.aws.s3rest.service.S3FileStorageService;
 
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -12,13 +11,14 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
+import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,25 +29,36 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/file-storage")
 public class FileStorageController {
 
-  private final FileStorageService service;
+  private final S3FileStorageService service;
+
+  @GetMapping(value = "/{filename}/versions")
+  public List<String> listVersions(@PathVariable String filename) {
+    return service.listFileVersions(filename);
+  }
 
   @GetMapping(value = "/{filename}")
-  public ResponseEntity<Resource> downloadFile(@PathVariable String filename) {
+  public ResponseEntity<Resource> downloadFile(@PathVariable String filename, @RequestParam String version) {
     return ResponseEntity.ok()
         .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", filename))
         .contentType(MediaType.APPLICATION_OCTET_STREAM)
-        .body(service.downloadFile(filename));
+        .body(service.downloadFile(filename, version));
   }
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  public String upload(@RequestParam("file") MultipartFile multipartFile) {
-    return service.uploadFile(multipartFile);
+  public String upload(@RequestParam("file") MultipartFile file) {
+    return service.uploadFile(file);
   }
 
-  @DeleteMapping("/{url}")
+  @PutMapping
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void delete(@PathVariable String url) {
-    service.deleteFile(url);
+  public String update(@RequestParam("file") MultipartFile file) {
+    return service.updateFile(file);
+  }
+
+  @DeleteMapping("/{filename}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void delete(@PathVariable String filename) {
+    service.deleteFile(filename);
   }
 }

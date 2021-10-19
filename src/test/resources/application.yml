@@ -5,17 +5,11 @@ spring:
       max-request-size: 15MB
 cloud:
   aws:
-    s3:
-      url: https://jaxelbucket.s3.eu-central-1.amazonaws.com
-      bucket: jaxelbucket
     region:
       auto: false
       static: eu-central-1
     stack:
       auto: false
-    credentials:
-      access-key: ${AWS_ACCESS_KEY}
-      secret-key: ${AWS_SECRET_KEY}
 logging:
   level:
     com:
