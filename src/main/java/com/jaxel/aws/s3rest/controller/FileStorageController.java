@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,13 +47,13 @@ public class FileStorageController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  public String upload(@RequestParam("file") MultipartFile file) {
+  public String upload(@RequestParam MultipartFile file) {
     return service.uploadFile(file);
   }
 
   @PutMapping
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public String update(@RequestParam("file") MultipartFile file) {
+  public String update(@RequestParam MultipartFile file) {
     return service.updateFile(file);
   }
 

@@ -35,7 +35,6 @@ public class S3FileStorageService implements FileStorageService {
   private final AmazonS3 amazonS3;
 
   public List<String> listFileVersions(String filename) {
-    validateFilename(filename);
     return amazonS3.listVersions(bucket, filename).getVersionSummaries()
         .stream()
         .map(S3VersionSummary::getVersionId)
