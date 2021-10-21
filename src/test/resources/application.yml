@@ -5,6 +5,8 @@ spring:
       max-request-size: 15MB
 cloud:
   aws:
+    s3:
+      bucket: testjaxelbucket
     region:
       auto: false
       static: eu-central-1

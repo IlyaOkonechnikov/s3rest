@@ -3,13 +3,10 @@ package com.jaxel.aws.s3rest.service;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 public interface FileStorageService {
 
-  List<String> listFileVersions(String filename);
 
-  InputStreamResource downloadFile(String filename, String version);
+  InputStreamResource downloadFile(String filename);
 
   String uploadFile(MultipartFile file);
 

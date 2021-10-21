@@ -18,9 +18,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,17 +29,12 @@ public class FileStorageController {
 
   private final S3FileStorageService service;
 
-  @GetMapping(value = "/{filename}/versions")
-  public List<String> listVersions(@PathVariable String filename) {
-    return service.listFileVersions(filename);
-  }
-
   @GetMapping(value = "/{filename}")
-  public ResponseEntity<Resource> downloadFile(@PathVariable String filename, @RequestParam String version) {
+  public ResponseEntity<Resource> downloadFile(@PathVariable String filename) {
     return ResponseEntity.ok()
         .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", filename))
         .contentType(MediaType.APPLICATION_OCTET_STREAM)
-        .body(service.downloadFile(filename, version));
+        .body(service.downloadFile(filename));
   }
 
   @PostMapping

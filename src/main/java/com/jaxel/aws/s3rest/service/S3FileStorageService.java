@@ -2,10 +2,8 @@ package com.jaxel.aws.s3rest.service;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
-import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3VersionSummary;
 import com.jaxel.aws.s3rest.exception.FileAlreadyExistsException;
 import com.jaxel.aws.s3rest.exception.FileDoesNotExistException;
 import com.jaxel.aws.s3rest.exception.FileUploadException;
@@ -14,9 +12,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,36 +29,36 @@ public class S3FileStorageService implements FileStorageService {
 
   private final AmazonS3 amazonS3;
 
-  public List<String> listFileVersions(String filename) {
-    return amazonS3.listVersions(bucket, filename).getVersionSummaries()
-        .stream()
-        .map(S3VersionSummary::getVersionId)
-        .collect(Collectors.toList());
-  }
-
-  public InputStreamResource downloadFile(String filename, String version) {
-    S3Object s3object = amazonS3.getObject(new GetObjectRequest(bucket, filename, version));
+  public InputStreamResource downloadFile(String filename) {
+    if (!existsInBucket(filename)) {
+      throw new FileDoesNotExistException(filename, bucket);
+    }
+    S3Object s3object = amazonS3.getObject(bucket, filename);
     return new InputStreamResource(s3object.getObjectContent());
   }
 
   public String uploadFile(MultipartFile file) {
     String filename = file.getOriginalFilename();
     validateFilename(filename);
-    validateFileExistence(filename);
+    if (existsInBucket(filename)) {
+      throw new FileAlreadyExistsException(filename, bucket);
+    }
     return putFileInBucket(file, filename);
   }
 
   public String updateFile(MultipartFile file) {
     String filename = file.getOriginalFilename();
     validateFilename(filename);
-    if (!amazonS3.doesObjectExist(bucket, filename)) {
+    if (!existsInBucket(filename)) {
       throw new FileDoesNotExistException(filename, bucket);
     }
     return putFileInBucket(file, filename);
   }
 
   public void deleteFile(String filename) {
-    validateFileExistence(filename);
+    if (!existsInBucket(filename)) {
+      throw new FileDoesNotExistException(filename, bucket);
+    }
     amazonS3.deleteObject(new DeleteObjectRequest(bucket, filename));
   }
 
@@ -79,10 +74,8 @@ public class S3FileStorageService implements FileStorageService {
     }
   }
 
-  private void validateFileExistence(String filename) {
-    if (amazonS3.doesObjectExist(bucket, filename)) {
-      throw new FileAlreadyExistsException(filename, bucket);
-    }
+  private boolean existsInBucket(String filename) {
+    return amazonS3.doesObjectExist(bucket, filename);
   }
 
   private void validateFilename(String filename) {
